@@ -1,0 +1,189 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>ESPHome Live</title>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@500;700&family=Inter:wght@400;500;600&family=JetBrains+Mono:wght@400;500&display=swap">
+<style>
+/* layout: the bench (device + the world it senses) at left, the firmware's own web UI at right */
+:root {
+  --bg: #0e1215; --bench: #151b20; --panel: #1b2228; --line: #2b343c;
+  --fg: #e8edf1; --muted: #8e99a3; --accent: #3fbfa8; --lamp: #ffcf5a; --pcb: #1f5d4a; --off: #39434c;
+  --display: "Space Grotesk", system-ui, sans-serif;
+  --body: Inter, system-ui, sans-serif;
+  --mono: "JetBrains Mono", ui-monospace, monospace;
+  color-scheme: dark;
+}
+* { box-sizing: border-box; }
+html, body { height: 100%; }
+body { margin: 0; background: var(--bg); color: var(--fg); font: 15px/1.5 var(--body); }
+.app { min-height: 100%; display: grid; grid-template-columns: minmax(380px, 460px) 1fr; }
+@media (max-width: 900px) { .app { grid-template-columns: 1fr; } }
+.bench { background: var(--bench); border-right: 1px solid var(--line); padding: 28px 24px; display: flex; flex-direction: column; gap: 24px; }
+.fw { display: flex; flex-direction: column; min-height: 640px; }
+.fw header { padding: 18px 24px; border-bottom: 1px solid var(--line); display: flex; justify-content: space-between; align-items: center; gap: 12px; flex-wrap: wrap; }
+.fw iframe { flex: 1; width: 100%; border: 0; background: #fff; }
+h1 { font: 700 26px/1.15 var(--display); margin: 0; }
+h2 { font: 600 16px/1.2 var(--display); margin: 0; }
+.sub { color: var(--muted); margin: 6px 0 0; font-size: 14px; }
+.label { font-size: 11px; letter-spacing: .09em; text-transform: uppercase; color: var(--muted); margin: 0 0 10px; }
+.pill { display: inline-flex; align-items: center; gap: 7px; font-family: var(--mono); font-size: 12px; padding: 3px 10px; border-radius: 99px; background: var(--panel); border: 1px solid var(--line); }
+.dot { width: 8px; height: 8px; border-radius: 50%; background: var(--off); }
+.on .dot { background: var(--accent); box-shadow: 0 0 8px var(--accent); }
+a { color: var(--accent); }
+
+/* the device drawing */
+.device { position: relative; display: grid; grid-template-columns: 1fr 1fr; gap: 14px; }
+.board { grid-column: 1 / -1; background: var(--pcb); border-radius: 10px; padding: 14px; display: flex; align-items: center; gap: 14px; box-shadow: inset 0 0 0 2px rgba(0,0,0,.25); }
+.chip { width: 64px; height: 64px; background: #1c1f22; border-radius: 6px; display: grid; place-items: center; font: 600 10px/1.2 var(--mono); color: #bbb; text-align: center; box-shadow: 0 0 0 3px #2a2e33; }
+.board p { margin: 0; font-size: 13px; color: #cfe7de; }
+.module { background: var(--panel); border: 1px solid var(--line); border-radius: 10px; padding: 14px; display: grid; gap: 8px; justify-items: start; }
+.lamp { width: 54px; height: 54px; border-radius: 50%; background: radial-gradient(circle at 40% 35%, #555 0%, #2a2a2a 70%); transition: background .2s, box-shadow .2s; }
+.lamp.lit { background: radial-gradient(circle at 40% 35%, #fff6d6 0%, var(--lamp) 45%, #c98a14 100%); box-shadow: 0 0 28px 6px rgba(255, 207, 90, .55); }
+.push { width: 54px; height: 54px; border-radius: 50%; border: 0; cursor: pointer; background: radial-gradient(circle at 40% 35%, #e85d5d, #a12f2f); box-shadow: 0 4px 0 #6e1f1f; }
+.push:active, .push.held { transform: translateY(3px); box-shadow: 0 1px 0 #6e1f1f; }
+.push:focus-visible, input:focus-visible { outline: 2px solid var(--accent); outline-offset: 3px; }
+.reading { font-family: var(--mono); font-size: 13px; color: var(--muted); }
+
+.sliders { display: grid; gap: 14px; }
+.slider { display: grid; gap: 4px; }
+.slider .row { display: flex; justify-content: space-between; }
+.slider output { font-family: var(--mono); font-variant-numeric: tabular-nums; }
+input[type=range] { width: 100%; accent-color: var(--accent); }
+.err { color: #f0a24a; font-size: 13px; margin: 0; }
+.foot { margin-top: auto; color: var(--muted); font-size: 12px; }
+</style>
+</head>
+<body>
+<div class="app">
+  <aside class="bench">
+    <div>
+      <h1>C3 Home</h1>
+      <p class="sub">An ESPHome device on a simulated ESP32-C3. The firmware is stock ESPHome; the sensor, button and relay are simulated parts you control here.</p>
+    </div>
+    <div class="row"><span class="pill" id="link"><i class="dot"></i><b>connecting</b></span></div>
+    <p class="err" id="err" hidden></p>
+
+    <section>
+      <p class="label">The device</p>
+      <div class="device">
+        <div class="board">
+          <div class="chip">ESP32<br>C3</div>
+          <p>Wi-Fi joined to <b>c3lab</b>; ESPHome web server on port 80, reached at <span class="reading">127.0.0.1:8080</span>.</p>
+        </div>
+        <div class="module">
+          <span class="label" style="margin:0">Relay (GPIO10)</span>
+          <div class="lamp" id="lamp" role="img" aria-label="Lamp off"></div>
+          <span class="reading" id="lampText">off</span>
+        </div>
+        <div class="module">
+          <span class="label" style="margin:0">Button (GPIO9)</span>
+          <button class="push" id="push" aria-label="Push button: toggles the relay"></button>
+          <span class="reading">press: toggles relay</span>
+        </div>
+      </div>
+    </section>
+
+    <section>
+      <p class="label">The room (BME280 on I2C)</p>
+      <div class="sliders">
+        <label class="slider" for="t"><span class="row"><span>Temperature</span><output id="tv">21.5 &deg;C</output></span>
+          <input type="range" id="t" min="-10" max="40" step="0.5" value="21.5"></label>
+        <label class="slider" for="h"><span class="row"><span>Humidity</span><output id="hv">45 %</output></span>
+          <input type="range" id="h" min="0" max="100" step="1" value="45"></label>
+        <label class="slider" for="p"><span class="row"><span>Pressure</span><output id="pv">1013 hPa</output></span>
+          <input type="range" id="p" min="950" max="1050" step="1" value="1013"></label>
+      </div>
+    </section>
+    <p class="foot">Control port <span id="port"></span> moves the simulated parts; ESPHome reads them every 2 s and its own page (right) shows what the firmware sees.</p>
+  </aside>
+
+  <main class="fw">
+    <header>
+      <h2>ESPHome's web UI, served by the simulated chip</h2>
+      <a href="http://127.0.0.1:8080/" target="_blank" rel="noopener">open in a tab</a>
+    </header>
+    <iframe id="ui" title="ESPHome web UI" src="about:blank"></iframe>
+  </main>
+</div>
+<script>
+const qs = new URLSearchParams(location.search);
+const port = qs.get("port") || "5810";
+const web = qs.get("web") || "8080";
+document.getElementById("port").textContent = port;
+const $ = (id) => document.getElementById(id);
+let ws, nextId = 1, pending = new Map(), uiLoaded = false;
+
+function call(kind, peripheral, property, value) {
+  return new Promise((resolve, reject) => {
+    if (!ws || ws.readyState !== 1) return reject(new Error("not connected"));
+    const id = nextId++;
+    pending.set(id, { resolve, reject });
+    const body = { peripheral, property, id };
+    if (kind === "set") body.value = value;
+    ws.send(JSON.stringify({ [kind]: body }));
+  });
+}
+function setLink(cls, text) { $("link").className = "pill " + cls; $("link").querySelector("b").textContent = text; }
+
+function connect() {
+  ws = new WebSocket(`ws://127.0.0.1:${port}/control`);
+  ws.onopen = () => {
+    setLink("on", "simulator live"); $("err").hidden = true;
+    // The web server is up a few seconds after boot (Wi-Fi join); load ESPHome's page once.
+    if (!uiLoaded) { uiLoaded = true; setTimeout(() => { $("ui").src = `http://127.0.0.1:${web}/`; }, 6000); }
+  };
+  ws.onmessage = (ev) => {
+    const m = JSON.parse(ev.data), p = pending.get(m.id);
+    if (!p) return;
+    pending.delete(m.id);
+    m.type === "error" ? p.reject(new Error(m.message)) : p.resolve(m);
+  };
+  ws.onclose = () => {
+    setLink("", "waiting for sim");
+    $("err").hidden = false;
+    $("err").textContent = `No simulator on port ${port}. Start it with ./demo in tests/esp/esp32c3/esphome-home.`;
+    pending.forEach((p) => p.reject(new Error("closed"))); pending.clear();
+    uiLoaded = false;
+    setTimeout(connect, 1000);
+  };
+}
+
+async function poll() {
+  try {
+    const io = (await call("get", "io", "inputs")).value;
+    const lit = io["0"] === 1;
+    $("lamp").classList.toggle("lit", lit);
+    $("lamp").setAttribute("aria-label", lit ? "Lamp on" : "Lamp off");
+    $("lampText").textContent = lit ? "on" : "off";
+  } catch (e) {}
+}
+
+function setButton(down) {
+  $("push").classList.toggle("held", down);
+  // GPIO9 is active low with a pull-up: pressed drives it low.
+  call("set", "io", "level", { line: 0, level: down ? 0 : 1 }).catch(() => {});
+}
+$("push").addEventListener("pointerdown", () => setButton(true));
+for (const ev of ["pointerup", "pointerleave"]) $("push").addEventListener(ev, () => { if ($("push").classList.contains("held")) setButton(false); });
+$("push").addEventListener("keydown", (e) => { if ((e.key === " " || e.key === "Enter") && !e.repeat) { e.preventDefault(); setButton(true); } });
+$("push").addEventListener("keyup", (e) => { if (e.key === " " || e.key === "Enter") setButton(false); });
+
+function slider(id, out, fmt, prop, scale) {
+  $(id).addEventListener("input", (e) => {
+    const v = Number(e.target.value);
+    $(out).textContent = fmt(v);
+    call("set", "climate", prop, v * scale).catch(() => {});
+  });
+}
+slider("t", "tv", (v) => v.toFixed(1) + " °C", "temperature_c", 1);
+slider("h", "hv", (v) => v.toFixed(0) + " %", "humidity_pct", 1);
+// The peer takes kPa.
+slider("p", "pv", (v) => v.toFixed(0) + " hPa", "pressure_kpa", 0.1);
+
+connect();
+setInterval(poll, 150);
+</script>
+</body>
+</html>

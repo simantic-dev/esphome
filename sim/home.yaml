@@ -1,0 +1,77 @@
+# ESPHome device for the simulated ESP32-C3: a BME280 climate sensor, a relay and a push button, with
+# ESPHome's own web UI. Built by build.sh (ESPHome 2026.11.0, ESP-IDF framework).
+esphome:
+  name: c3home
+  friendly_name: C3 Home
+
+esp32:
+  board: esp32-c3-devkitm-1
+  framework:
+    type: esp-idf
+
+logger:
+  level: INFO
+
+wifi:
+  ssid: "c3lab"
+  password: "c3password123"
+  reboot_timeout: 0s
+  # Static address in the gateway's network (10.0.2.0/24): the CI run has no DHCP server, the live one does.
+  manual_ip:
+    static_ip: 10.0.2.15
+    gateway: 10.0.2.2
+    subnet: 255.255.255.0
+
+web_server:
+  port: 80
+  version: 3
+
+i2c:
+  sda: GPIO6
+  scl: GPIO7
+  frequency: 100kHz
+
+sensor:
+  - platform: bme280_i2c
+    address: 0x76
+    update_interval: 2s
+    temperature:
+      name: Temperature
+      on_value:
+        - logger.log:
+            format: "temperature %.1f C"
+            args: [x]
+            level: INFO
+    pressure:
+      name: Pressure
+      on_value:
+        - logger.log:
+            format: "pressure %.1f hPa"
+            args: [x]
+            level: INFO
+    humidity:
+      name: Humidity
+      on_value:
+        - logger.log:
+            format: "humidity %.1f %%"
+            args: [x]
+            level: INFO
+
+switch:
+  - platform: gpio
+    pin: GPIO10
+    name: Relay
+    id: relay
+
+binary_sensor:
+  - platform: gpio
+    pin:
+      number: GPIO9
+      inverted: true
+      mode:
+        input: true
+        pullup: true
+    name: Button
+    on_press:
+      then:
+        - switch.toggle: relay

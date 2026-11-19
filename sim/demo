@@ -1,0 +1,11 @@
+#!/bin/sh
+# Interactive ESPHome device: starts the sim with sim/live.yaml (control port 5810, web UI on 8080) and opens
+# sim/home.html.  sim/demo  uses `sim` on PATH, or SIM=/path/to/sim sim/demo.  Ctrl-C stops the sim.
+cd "$(dirname "$0")/.."
+${SIM:-sim} run --scenario sim/live.yaml -q &
+pid=$!
+trap 'kill $pid 2>/dev/null' EXIT INT TERM
+url="file://$PWD/sim/home.html?port=5810&web=8080"
+(command -v open >/dev/null && open "$url") || (command -v xdg-open >/dev/null && xdg-open "$url") || echo "open $url"
+echo "ESPHome device running (sim pid $pid). Web UI: http://127.0.0.1:8080  Ctrl-C to stop."
+wait $pid
