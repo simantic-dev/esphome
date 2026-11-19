@@ -1,0 +1,18 @@
+# Interactive ESPHome device: the C3 joins a simulated Wi-Fi network; the gateway relays laptop port 8080 to
+# the device's web UI (port 80), and the control port (5810) reaches the BME280 and the GPIO peer.
+machines:
+  c3:
+    mcu: ESP32-C3
+    overlay: home.board
+    flash: firmware.factory.bin
+    mac: "24:0a:c4:00:00:c3"
+media:
+  - type: wifi
+    channel: 1
+    connect: [c3.wifi]
+    ap: { ssid: c3lab, password: c3password123 }
+    gateway:
+      forward:
+        - { host: 8080, device: 80 }
+controlPort: 5810
+timeout: 86400

@@ -1,0 +1,14 @@
+# ESP32-C3 home device (home.yaml): BME280 on I2C0 (SDA GPIO6, SCL GPIO7) at 0x76; the relay output (GPIO10)
+# and the push button (GPIO9, active low, pull-up) on a scripted GPIO peer.
+climate: I2C.ScriptedI2cSlave @ i2c0 0x76
+    file: "sim/peers/bme280.py"
+    config: "{\"calibration\": \"datasheet\", \"temperature_c\": 21.5, \"pressure_kpa\": 101.32, \"humidity_pct\": 45.0}"
+
+io: Scripted.ScriptedGpioPeer @ none
+    file: "sim/peers/pin_script.py"
+    config: "{\"idle\": {\"0\": 1}}"
+    numberOfGpios: 1
+    0 -> gpio@9
+
+gpio:
+    10 -> io@0
