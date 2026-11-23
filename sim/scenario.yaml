@@ -1,0 +1,14 @@
+# Deterministic run (sim/test.sh): joins the in-engine access point with no host network, so it is unpaced and
+# repeatable, and reads the BME280 peer through ESPHome's own compensation every 2 s.
+machines:
+  c3:
+    mcu: ESP32-C3
+    overlay: home.board
+    flash: firmware.factory.bin
+    mac: "24:0a:c4:00:00:c3"
+media:
+  - type: wifi
+    channel: 1
+    connect: [c3.wifi]
+    ap: { ssid: c3lab, password: c3password123 }
+timeout: 12
