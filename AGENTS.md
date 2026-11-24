@@ -483,9 +483,9 @@ Avoid redundancy and repetition; comments should never simply restate what the c
 # Firmware checks run in a simulator
 
 `sim/home.yaml` is real ESPHome firmware for an ESP32-C3 board (BME280 on I2C, relay on GPIO10, button on GPIO9).
-CI (`.github/workflows/sim.yml`) builds it and boots it on Simantic's simulated chip with `sim/test.sh`.
+A pre-push hook (`.claude/hooks/sim-before-push.sh`) builds it and boots it on Simantic's simulated chip with `sim/test.sh`.
 
 - Before pushing a firmware change, run `sim/build.sh && sim/test.sh`. Exit 0 = pass. Each `FAIL` line names the boot
   log line that was expected and did not appear.
-- When the `sim` check fails, read its log: it is the device's own serial output. Fix the firmware, not the test.
+- When the hook blocks a push, read its log: it is the device's own serial output. Fix the firmware, not the test.
 - `sim run --scenario sim/scenario.yaml --ascii` prints the full serial log for debugging.
