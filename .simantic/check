@@ -1,0 +1,3 @@
+#!/bin/sh
+# Simantic check (run by the simantic Claude Code plugin before git push): build sim/home.yaml, boot it in the simulator.
+cd "$(dirname "$0")/.." && { [ -f venv/bin/activate ] && . venv/bin/activate; sim/build.sh && sim/test.sh; }
